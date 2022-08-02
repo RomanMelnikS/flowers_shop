@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from products.models import Flowers, Deals, DealDetails
+from products.models import Flowers, Deals, DealDetails, Feedback
 
 
 class DealFlowerssAdmin(admin.TabularInline):
@@ -43,7 +43,8 @@ class DealsAdmin(admin.ModelAdmin):
     list_display = (
         'pk',
         'buyer',
-        'total_price'
+        'total_price',
+        'status'
     )
     inlines = [
         DealFlowerssAdmin,
@@ -57,4 +58,15 @@ class DealFlowersAdmin(admin.ModelAdmin):
         'deal',
         'flowers',
         'amount'
+    )
+
+
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = (
+        'pk',
+        'author',
+        'seller',
+        'flowers',
+        'text'
     )
