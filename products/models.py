@@ -1,5 +1,5 @@
-from django.db import models
 from django.core.exceptions import ValidationError
+from django.db import models
 
 from users.models import CustomUser
 
@@ -43,6 +43,7 @@ def visibility_validation(value):
     if not flower.visibility:
         raise ValidationError(
             ('Продавец скрыл этот лот.'),
+            code='flowers',
             params={'value': value}
         )
 
@@ -68,7 +69,7 @@ class Flowers(models.Model):
         CustomUser,
         on_delete=models.CASCADE,
         validators=[seller_validation],
-        related_name='seller',
+        related_name='seller_flowers',
         verbose_name='Продавец',
         null=False
     )
@@ -112,11 +113,20 @@ class Deals(models.Model):
         ('complete', 'Завершён')
     ]
 
+    seller = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        validators=[seller_validation],
+        related_name='sale',
+        verbose_name='Продавец',
+        null=False
+    )
+
     buyer = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
         validators=[buyer_validation],
-        related_name='buyer',
+        related_name='buy',
         verbose_name='Покупатель',
         null=False
     )
@@ -165,7 +175,25 @@ class DealDetails(models.Model):
     )
 
     def clean(self):
-        if self.amount > self.flowers.availability:
+        try:
+            self.flowers
+        except Flowers.DoesNotExist:
+            raise ValidationError(
+                ('Вы не добавили цветы.')
+            )
+
+        if not Flowers.objects.filter(
+            id=self.flowers.id,
+            seller=self.deal.seller,
+        ).exists():
+            raise ValidationError(
+                ('Данный продавец не продаёт эти цветы.')
+            )
+
+        if (
+            self.amount is not None
+            and self.amount >= self.flowers.availability
+        ):
             raise ValidationError(
                 ('Количество товара в заказе не может быть больше, \
                     чем в наличии.')
@@ -216,10 +244,13 @@ class Feedback(models.Model):
     )
 
     def clean(self):
-        if Flowers.objects.filter(
-            id=self.flowers.id,
-            seller=self.seller,
-        ).exists():
+        if (
+            self.flowers is not None
+            and not Flowers.objects.filter(
+                id=self.flowers.id,
+                seller=self.seller,
+            ).exists()
+        ):
             raise ValidationError(
                 ('Данный продавец не продаёт эти цветы.')
             )

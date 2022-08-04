@@ -1,9 +1,9 @@
 from django.contrib import admin
 
-from products.models import Flowers, Deals, DealDetails, Feedback
+from products.models import DealDetails, Deals, Feedback, Flowers
 
 
-class DealFlowerssAdmin(admin.TabularInline):
+class DealDetailsInlineAdmin(admin.TabularInline):
     list_display = (
         'flowers',
         'amount'
@@ -28,31 +28,32 @@ class FlowersAdmin(admin.ModelAdmin):
 class DealsAdmin(admin.ModelAdmin):
 
     def total_price(self, obj):
-        details = DealDetails.objects.filter(deal=obj).values_list(
-            'amount',
-            flat=True
-        )
         total_price = 0
-        for flower in obj.flowers.all():
-            for amount in details:
-                total_price += amount * flower.price
+        for flower in obj.deal.all():
+            total_price += flower.amount * flower.flowers.price
         return total_price
 
     total_price.short_description = 'Итоговая цена'
 
+    fields = (
+        'buyer',
+        'seller'
+    )
+
     list_display = (
         'pk',
         'buyer',
+        'seller',
         'total_price',
         'status'
     )
     inlines = [
-        DealFlowerssAdmin,
+        DealDetailsInlineAdmin,
     ]
 
 
 @admin.register(DealDetails)
-class DealFlowersAdmin(admin.ModelAdmin):
+class DealDetailsAdmin(admin.ModelAdmin):
     list_display = (
         'pk',
         'deal',
